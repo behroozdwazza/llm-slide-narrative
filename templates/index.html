@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Slide Narrative Builder</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}?v=20260502-processing">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="workspace">
+        <form id="narrative-form" class="control-panel">
+          <div class="brand-row">
+            <div>
+              <p class="eyebrow">Narrative Builder</p>
+              <h1>Slide-by-slide speaker script</h1>
+              {% if app_variant_label is defined and app_variant_label %}
+                <p class="variant-label">{{ app_variant_label }}</p>
+              {% endif %}
+            </div>
+            <span id="key-status" class="status-pill">Checking</span>
+          </div>
+          {% if app_variant_note is defined and app_variant_note %}
+            <p class="variant-note">{{ app_variant_note }}</p>
+          {% endif %}
+
+          <div class="upload-grid">
+            <label class="drop-zone">
+              <span class="label">Source document</span>
+              <span class="hint">PDF, Word, text, or markdown</span>
+              <input type="file" name="source" accept=".pdf,.doc,.docx,.txt,.md" required>
+              <strong data-file-label="source">Choose file</strong>
+            </label>
+
+            <label class="drop-zone">
+              <span class="label">Slide deck</span>
+              <span class="hint">PowerPoint or PDF deck</span>
+              <input type="file" name="deck" accept=".ppt,.pptx,.pdf" required>
+              <strong data-file-label="deck">Choose file</strong>
+            </label>
+          </div>
+
+          <div class="field-grid">
+            <label>
+              <span>Audience</span>
+              <select name="audience">
+                <option value="students">Students</option>
+                <option value="faculty">Faculty</option>
+                <option value="executives">Executives</option>
+                <option value="general" selected>General audience</option>
+                <option value="technical">Technical audience</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Tone</span>
+              <select name="tone">
+                <option value="formal">Formal</option>
+                <option value="semi-formal" selected>Semi-formal</option>
+                <option value="casual">Casual</option>
+              </select>
+            </label>
+
+            <label>
+              <span>Model</span>
+              <select name="model">
+                {% for option in model_options %}
+                  <option value="{{ option.id }}" {% if option.id == default_model %}selected{% endif %}>
+                    {{ option.label }}
+                  </option>
+                {% endfor %}
+              </select>
+            </label>
+          </div>
+
+          <label class="full-field">
+            <span>Extra guidance</span>
+            <textarea name="guidance" rows="3" placeholder="Example: keep each slide under one minute, avoid jargon, emphasize outcomes."></textarea>
+          </label>
+
+          <label class="full-field">
+            <span>OpenAI API key</span>
+            <input id="api-key-input" type="password" name="api_key" autocomplete="off" spellcheck="false" placeholder="{% if server_key_configured %}Server key is configured; leave blank{% else %}Paste a key for this session{% endif %}">
+            <small class="field-note">
+              {% if server_key_configured %}
+                The deployed app can use the server key. Leave this blank unless you want to override it.
+              {% else %}
+                Used only for this request. It is not saved by the app.
+              {% endif %}
+            </small>
+          </label>
+
+          <label id="access-code-field" class="full-field" {% if not access_code_required %}hidden{% endif %}>
+            <span>Access code</span>
+            <input id="access-code-input" type="password" name="access_code" autocomplete="off" spellcheck="false" placeholder="Enter the shared access code">
+            <small class="field-note">Required for shared deployments.</small>
+          </label>
+
+          <label class="option-row">
+            <input type="checkbox" name="include_files">
+            <span>Upload original files to OpenAI for PDF and visual slide context</span>
+          </label>
+
+          <button id="generate-button" class="primary-button" type="submit">
+            <span class="button-spinner" aria-hidden="true"></span>
+            <span id="generate-button-label">Generate narrative</span>
+          </button>
+
+          <div id="form-processing" class="form-processing" hidden>
+            <span class="mini-spinner" aria-hidden="true"></span>
+            <div>
+              <strong>Generating narrative...</strong>
+              <small id="form-processing-timer">Elapsed: 0s</small>
+            </div>
+          </div>
+        </form>
+
+        <section class="results-panel">
+          <div class="results-header">
+            <div>
+              <p class="eyebrow">Output</p>
+              <h2>Speaker narrative</h2>
+            </div>
+            <button id="copy-button" class="secondary-button" type="button" disabled>Copy all</button>
+          </div>
+
+          <div id="notices" class="notices" hidden></div>
+          <div id="empty-state" class="empty-state">
+            Upload your files, select the audience and tone, then generate the narration.
+          </div>
+          <div id="loading-state" class="loading-state" hidden>
+            <div class="processing-card">
+              <div class="processing-spinner" aria-hidden="true"></div>
+              <strong id="loading-title">Generating your speaker narrative</strong>
+              <p id="loading-message">Reading the files and preparing the request...</p>
+              <small id="loading-timer">Elapsed: 0s</small>
+            </div>
+          </div>
+          <div id="slides" class="slides"></div>
+          <pre id="raw-output" class="raw-output" hidden></pre>
+        </section>
+      </section>
+    </main>
+
+    <script src="{{ url_for('static', filename='app.js') }}?v=20260502-processing"></script>
+  </body>
+</html>

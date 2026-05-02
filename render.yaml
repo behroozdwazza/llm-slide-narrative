@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: slide-narrative-builder
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app_full_context:app --bind 0.0.0.0:$PORT --timeout 600 --workers 1
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: APP_ACCESS_CODE
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-5.4-mini
