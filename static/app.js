@@ -54,10 +54,12 @@ async function checkHealth() {
   }
 }
 
-apiKeyInput.addEventListener("input", updateKeyStatus);
+if (apiKeyInput) {
+  apiKeyInput.addEventListener("input", updateKeyStatus);
+}
 
 function updateKeyStatus() {
-  const hasSessionKey = apiKeyInput.value.trim().length > 0;
+  const hasSessionKey = apiKeyInput && apiKeyInput.value.trim().length > 0;
   const ready = serverKeyConfigured || hasSessionKey;
   keyStatus.textContent = ready ? "LLM ready" : "Preview mode";
   keyStatus.dataset.ready = ready ? "true" : "false";

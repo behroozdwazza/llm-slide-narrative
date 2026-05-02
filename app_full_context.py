@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, redirect, render_template, request, session, url_for
 from werkzeug.exceptions import RequestEntityTooLarge
 
 from extractors import build_context_preview, validate_upload
@@ -8,6 +8,7 @@ from narrator_full_context import generate_narrative
 
 
 app = Flask(__name__)
+app.secret_key = os.getenv("SECRET_KEY") or os.getenv("APP_ACCESS_CODE") or "local-dev-secret"
 UPLOAD_LIMIT_MB = 256
 app.config["MAX_CONTENT_LENGTH"] = UPLOAD_LIMIT_MB * 1024 * 1024
 
@@ -57,14 +58,34 @@ MODEL_OPTIONS = [
 
 @app.route("/", methods=["GET"])
 def index():
+    if access_code_is_required() and not session.get("access_granted"):
+        return render_template("index.html", access_gate=True, access_error="")
+
     default_model = os.getenv("OPENAI_MODEL", "gpt-5.4-mini")
+    require_user_key = user_api_key_is_required()
     return render_template(
         "index.html",
-        access_code_required=bool(os.getenv("APP_ACCESS_CODE")),
+        access_code_required=False,
         default_model=default_model,
         model_options=MODEL_OPTIONS,
-        server_key_configured=bool(os.getenv("OPENAI_API_KEY")),
+        server_key_configured=bool(os.getenv("OPENAI_API_KEY")) and not require_user_key,
+        require_user_api_key=require_user_key,
+        show_api_key_field=require_user_key or not bool(os.getenv("OPENAI_API_KEY")),
     )
+
+
+@app.route("/unlock", methods=["POST"])
+def unlock():
+    expected_access_code = os.getenv("APP_ACCESS_CODE")
+    entered_access_code = (request.form.get("access_code") or "").strip()
+    if not expected_access_code or entered_access_code == expected_access_code:
+        session["access_granted"] = True
+        return redirect(url_for("index"))
+    return render_template(
+        "index.html",
+        access_gate=True,
+        access_error="That access code is not correct.",
+    ), 403
 
 
 @app.route("/api/generate", methods=["POST"])
@@ -75,19 +96,20 @@ def generate():
     tone = (request.form.get("tone") or "semi-formal").strip()
     guidance = (request.form.get("guidance") or "").strip()
     api_key = (request.form.get("api_key") or "").strip()
-    access_code = (request.form.get("access_code") or "").strip()
     include_files = request.form.get("include_files") == "on"
     allowed_models = {option["id"] for option in MODEL_OPTIONS}
     model = (request.form.get("model") or os.getenv("OPENAI_MODEL") or "gpt-5.4-mini").strip()
     if model not in allowed_models:
         model = "gpt-5.4-mini"
 
-    expected_access_code = os.getenv("APP_ACCESS_CODE")
-    if expected_access_code and access_code != expected_access_code:
-        return jsonify({"error": "The access code is missing or incorrect."}), 403
+    if access_code_is_required() and not session.get("access_granted"):
+        return jsonify({"error": "Please enter the access code before using the app."}), 403
+
+    if user_api_key_is_required() and not api_key:
+        return jsonify({"error": "Please enter your own OpenAI API key before generating."}), 400
 
     if not api_key and not os.getenv("OPENAI_API_KEY"):
-        return jsonify({"error": "OpenAI API key is not configured on the server. Add one in the app or set OPENAI_API_KEY."}), 400
+        return jsonify({"error": "OpenAI API key is not configured. Add one in the app before generating."}), 400
 
     if not source_file or not deck_file:
         return jsonify({"error": "Please upload both the source document and the slide deck."}), 400
@@ -131,8 +153,9 @@ def health():
         {
             "ok": True,
             "variant": "full_deck_context",
-            "access_code_required": bool(os.getenv("APP_ACCESS_CODE")),
-            "openai_key_configured": bool(os.getenv("OPENAI_API_KEY")),
+            "access_code_required": access_code_is_required(),
+            "openai_key_configured": bool(os.getenv("OPENAI_API_KEY")) and not user_api_key_is_required(),
+            "require_user_api_key": user_api_key_is_required(),
             "upload_limit_mb": UPLOAD_LIMIT_MB,
         }
     )
@@ -151,6 +174,14 @@ def handle_large_upload(exc):
         ),
         413,
     )
+
+
+def access_code_is_required() -> bool:
+    return bool(os.getenv("APP_ACCESS_CODE"))
+
+
+def user_api_key_is_required() -> bool:
+    return os.getenv("REQUIRE_USER_API_KEY", "false").strip().lower() in {"1", "true", "yes", "on"}
 
 
 if __name__ == "__main__":

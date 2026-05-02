@@ -11,3 +11,7 @@ services:
         sync: false
       - key: OPENAI_MODEL
         value: gpt-5.4-mini
+      - key: REQUIRE_USER_API_KEY
+        value: "false"
+      - key: SECRET_KEY
+        sync: false

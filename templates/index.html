@@ -8,6 +8,22 @@
   </head>
   <body>
     <main class="app-shell">
+      {% if access_gate is defined and access_gate %}
+      <section class="access-shell">
+        <form class="access-card" method="post" action="{{ url_for('unlock') }}">
+          <p class="eyebrow">Narrative Builder</p>
+          <h1>Slide-by-slide speaker script</h1>
+          <label class="full-field">
+            <span>Access code</span>
+            <input type="password" name="access_code" autocomplete="off" spellcheck="false" placeholder="Enter the shared access code" required autofocus>
+          </label>
+          {% if access_error %}
+            <p class="access-error">{{ access_error }}</p>
+          {% endif %}
+          <button class="primary-button" type="submit">Open app</button>
+        </form>
+      </section>
+      {% else %}
       <section class="workspace">
         <form id="narrative-form" class="control-panel">
           <div class="brand-row">
@@ -78,23 +94,29 @@
             <textarea name="guidance" rows="3" placeholder="Example: keep each slide under one minute, avoid jargon, emphasize outcomes."></textarea>
           </label>
 
-          <label class="full-field">
-            <span>OpenAI API key</span>
-            <input id="api-key-input" type="password" name="api_key" autocomplete="off" spellcheck="false" placeholder="{% if server_key_configured %}Server key is configured; leave blank{% else %}Paste a key for this session{% endif %}">
-            <small class="field-note">
-              {% if server_key_configured %}
-                The deployed app can use the server key. Leave this blank unless you want to override it.
-              {% else %}
-                Used only for this request. It is not saved by the app.
-              {% endif %}
-            </small>
-          </label>
+          {% if show_api_key_field is not defined or show_api_key_field %}
+            <label class="full-field">
+              <span>OpenAI API key</span>
+              <input id="api-key-input" type="password" name="api_key" autocomplete="off" spellcheck="false" {% if require_user_api_key is defined and require_user_api_key %}required{% endif %} placeholder="{% if require_user_api_key is defined and require_user_api_key %}Paste your OpenAI API key{% elif server_key_configured %}Server key is configured; leave blank{% else %}Paste a key for this session{% endif %}">
+              <small class="field-note">
+                {% if require_user_api_key is defined and require_user_api_key %}
+                  Required for each request. The app does not save this key.
+                {% elif server_key_configured %}
+                  The deployed app can use the server key. Leave this blank unless you want to override it.
+                {% else %}
+                  Used only for this request. It is not saved by the app.
+                {% endif %}
+              </small>
+            </label>
+          {% endif %}
 
-          <label id="access-code-field" class="full-field" {% if not access_code_required %}hidden{% endif %}>
-            <span>Access code</span>
-            <input id="access-code-input" type="password" name="access_code" autocomplete="off" spellcheck="false" placeholder="Enter the shared access code">
-            <small class="field-note">Required for shared deployments.</small>
-          </label>
+          {% if access_code_required %}
+            <label id="access-code-field" class="full-field">
+              <span>Access code</span>
+              <input id="access-code-input" type="password" name="access_code" autocomplete="off" spellcheck="false" placeholder="Enter the shared access code">
+              <small class="field-note">Required for shared deployments.</small>
+            </label>
+          {% endif %}
 
           <label class="option-row">
             <input type="checkbox" name="include_files">
@@ -140,8 +162,11 @@
           <pre id="raw-output" class="raw-output" hidden></pre>
         </section>
       </section>
+      {% endif %}
     </main>
 
+    {% if not (access_gate is defined and access_gate) %}
     <script src="{{ url_for('static', filename='app.js') }}?v=20260502-processing"></script>
+    {% endif %}
   </body>
 </html>
