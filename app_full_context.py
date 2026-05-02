@@ -3,13 +3,56 @@ import os
 from flask import Flask, jsonify, render_template, request
 from werkzeug.exceptions import RequestEntityTooLarge
 
-from app import MODEL_OPTIONS, UPLOAD_LIMIT_MB
 from extractors import build_context_preview, validate_upload
 from narrator_full_context import generate_narrative
 
 
 app = Flask(__name__)
+UPLOAD_LIMIT_MB = 256
 app.config["MAX_CONTENT_LENGTH"] = UPLOAD_LIMIT_MB * 1024 * 1024
+
+MODEL_OPTIONS = [
+    {
+        "id": "gpt-5.4-mini",
+        "label": "GPT-5.4 mini - better quality, recommended",
+    },
+    {
+        "id": "gpt-5.4",
+        "label": "GPT-5.4 - stronger, higher cost",
+    },
+    {
+        "id": "gpt-5.4-nano",
+        "label": "GPT-5.4 nano - lower cost",
+    },
+    {
+        "id": "gpt-5-mini",
+        "label": "GPT-5 mini - cost-efficient",
+    },
+    {
+        "id": "gpt-5-nano",
+        "label": "GPT-5 nano - fastest GPT-5 option",
+    },
+    {
+        "id": "gpt-5",
+        "label": "GPT-5 - stronger reasoning",
+    },
+    {
+        "id": "gpt-4.1-mini",
+        "label": "GPT-4.1 mini - older, affordable",
+    },
+    {
+        "id": "gpt-4.1",
+        "label": "GPT-4.1 - older, strong non-reasoning",
+    },
+    {
+        "id": "gpt-4o",
+        "label": "GPT-4o - older, versatile",
+    },
+    {
+        "id": "gpt-4o-mini",
+        "label": "GPT-4o mini - older, very low cost",
+    },
+]
 
 
 @app.route("/", methods=["GET"])
