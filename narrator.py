@@ -324,6 +324,7 @@ Narrative requirements:
 - Write 2 to 3 natural paragraphs per content slide.
 - Aim for roughly 100 to 150 words per content slide.
 - Build the explanation, context, transitions, and examples directly into the narrative.
+- Use smooth transitions between slides. Avoid opening a slide narrative with generic phrases like "This slide shows..." or "This slide is about..."
 - Do not say "the presenter can mention" or "you may want to explain"; just write the words the presenter should say.
 - Use conversational spoken English while matching the requested tone.
 - Stay faithful to the provided source and slide text.
